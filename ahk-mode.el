@@ -267,7 +267,7 @@ Key bindings:
       (beginning-of-line)
       (if (looking-at "^\\([ \t]+\\)\\}")
           (setq indent (- indent 2))
-        (if (or (looking-at "^[ \t]*[^: \t\n]*:")
+        (if (or (looking-at "^[ \t]*[^: \t\n]*::")
                 (and (looking-at "^\\([ \t]*\\)\\(Return\\|Exit\\)")
                      (or (<= (length (match-string 1)) 2)
                          (= indent 2)))
@@ -322,22 +322,25 @@ Key bindings:
               completions)
           (setq completions (all-completions prefix ahk-completion-list))
           (if (eq completions nil)
-              (error "Unknown command prefix <%s>!" prefix)
+              nil;(error "Unknown command prefix <%s>!" prefix)
             (if (> (length completions) 1)
                 (setq completions
                       (completing-read "Complete command: "
                                        (mapcar (lambda (c) (list c))
                                                completions)
-                                       nil t prefix))))
-          (if (stringp completions)
-              ;; this is a trick to upcase "If" and other prefixes
-              (let ((c (try-completion completions ahk-completion-list)))
-                (if (stringp c)
-                    (setq completions c))))
-
-          (delete-region start end)
-          (if (listp completions) (setq completions (car completions)))
-          (insert completions)))))
+                                       nil t prefix)))
+            (if (stringp completions)
+                ;; this is a trick to upcase "If" and other prefixes
+                (let ((c (try-completion completions ahk-completion-list)))
+                  (if (stringp c)
+                      (setq completions c))))
+            
+            (delete-region start end)
+            (if (listp completions) (setq completions (car completions)))
+            (insert completions)
+            (let ((help (assoc completions ahk-Commands-list)))
+              (if help (message "%s" (mapconcat 'identity help ""))))
+            )))))
 
 (defun ahk-indent-line-and-complete ()
   "Combines indetion and completion."
