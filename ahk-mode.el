@@ -34,7 +34,7 @@
 ;; Please send bug-reports or feature suggestions to hackATrobfDOTde.
 
 ;;; History:
-;; 0.1.2: first public release
+;; is stored in my arch repository ... 
 
 (eval-when-compile
   (require 'cl))
