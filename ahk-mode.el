@@ -164,7 +164,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Commands-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\(#?[A-Za-z]+\\)\\([^\r]*\\)\r?"))
+      (if (not (looking-at "\\([^;][^\t\r\n, ]+\\)\\([^\r\n]*\\)"))
           nil;; (error "Unknown file syntax")
         (setq ahk-Commands-list (cons (list
                                        (match-string 1)
@@ -179,7 +179,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Keys-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\([^;][^\r\n ]+\\)\r?"))
+      (if (not (looking-at "\\([^;][^\t\r\n ]+\\)"))
           nil;; (error "Unknown file syntax of Keys.txt")
         (setq ahk-Keys-list (cons (match-string 1) ahk-Keys-list)))
       (forward-line 1))
@@ -191,7 +191,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Keywords-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\([^;][^\r\n ]+\\)\r?"))
+      (if (not (looking-at "\\([^;][^\t\r\n ]+\\)"))
           nil;; (error "Unknown file syntax of Keywords.txt")
         (setq ahk-Keywords-list (cons (match-string 1) ahk-Keywords-list)))
       (forward-line 1))
@@ -202,7 +202,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Variables-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\([^;][^\r\n ]+\\)\r?"))
+      (if (not (looking-at "\\([^;][^\t\r\n]+\\)"))
           nil;; (error "Unknown file syntax of Variables.txt")
         (setq ahk-Variables-list (cons (match-string 1) ahk-Variables-list)))
       (forward-line 1))
@@ -219,6 +219,8 @@ This directory must be specified in the variable `ahk-syntax-directory'."
           (list
            '("\\s-*;.*$" .
              font-lock-comment-face)
+           '("^/\\*\\(.*\r?\n\\)*\\(\\*/\\)?" .
+             font-lock-comment-face)
            '("^\\([^ \t\n:]+\\):" .
              (1 font-lock-builtin-face))
            '("[^, %\"]*%[^% ]+%" .
@@ -226,14 +228,26 @@ This directory must be specified in the variable `ahk-syntax-directory'."
            ;; I get an error when using regexp-opt instead of simply
            ;; concatenating the keywords and I do not understand why ;-(
            ;; (warning/warning) Error caught in `font-lock-pre-idle-hook': (invalid-regexp Invalid preceding regular expression)
-           (cons (mapconcat 'identity (mapcar 'car ahk-Commands-list) "\\|")
-                 'font-lock-function-name-face)
-           (cons (mapconcat 'identity ahk-Keywords-list "\\|")
-                 'font-lock-keyword-face)
-           (cons (mapconcat 'identity ahk-Keys-list "\\|")
-                 'font-lock-constant-face)
-           (cons (mapconcat 'identity ahk-Variables-list "\\|")
-                 'font-lock-variable-name-face)
+           (cons
+            (concat "\\b\\("
+                    (mapconcat 'regexp-quote ahk-Variables-list "\\|")
+                    "\\)\\b")
+            'font-lock-variable-name-face)
+           (cons
+            (concat "\\b\\("
+                    (mapconcat 'regexp-quote (mapcar 'car ahk-Commands-list) "\\|")
+                    "\\)\\b")
+            'font-lock-function-name-face)
+           (cons
+            (concat "\\b\\("
+                    (mapconcat 'regexp-quote ahk-Keywords-list "\\|")
+                    "\\)\\b")
+            'font-lock-keyword-face)
+           (cons
+            (concat "\\b\\("
+                    (mapconcat 'regexp-quote ahk-Keys-list "\\|")
+                    "\\)\\b")
+            'font-lock-constant-face)
            )))
   
   (message "Initializing ahk-mode variables done."))
@@ -292,7 +306,7 @@ Key bindings:
       (beginning-of-line)
       (if (looking-at "^\\([ \t]+\\)\\}")
           (setq indent (- indent ahk-indetion))
-        (if (or (looking-at "^[ \t]*[^: \t\n]*::")
+        (if (or (looking-at "^[ \t]*[^,: \t\n]*:")
                 (and (looking-at "^\\([ \t]*\\)\\(Return\\|Exit\\)")
                      (or (<= (length (match-string 1)) ahk-indetion)
                          (= indent ahk-indetion)))
@@ -311,15 +325,17 @@ Key bindings:
 (defun ahk-indent-region (start end)
   "Indent lines in region START to END."
   (interactive "r")
-  (goto-char end)
-  (setq end (point-marker))
-  (goto-char start)
-  (while (<= (point) end)
-    (beginning-of-line)
+  (save-excursion
+    (goto-char end)
+    (setq end (point-marker))
+    (goto-char start)
+    (while (< (point) end)
+      (beginning-of-line)
+      (ahk-indent-line)
+      (forward-line 1))
     (ahk-indent-line)
-    (forward-line 1))
-  (set-marker end nil))
-
+    (set-marker end nil)))
+  
 (defun ahk-complete ()
   "Indent current line when at the beginning or complete current command."
   (interactive)
