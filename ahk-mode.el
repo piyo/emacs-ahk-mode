@@ -28,6 +28,7 @@
 ;; - syntax highlighting
 ;; - completion of commands and variables (bound to tab)
 ;; - indention (bound to tab)
+;; - electric braces (typing { will also insert })
 ;;
 ;; Please send bug-reports or feature suggestions to hackATrobfDOTde.
 
@@ -53,7 +54,7 @@
 
 (defvar ahk-mode-syntax-table
   (let ((syntax-table (make-syntax-table)))
-    ;; these are also allowed in variable names 
+    ;; these are also allowed in variable names
     (modify-syntax-entry ?#  "w" syntax-table)
     (modify-syntax-entry ?_  "w" syntax-table)
     (modify-syntax-entry ?@  "w" syntax-table)
@@ -250,12 +251,16 @@ Key bindings:
   (interactive)
 
   (if (null ahk-completion-list)
+      ;; built completion list
       (setq ahk-completion-list
             (mapcar (lambda (c) (list c))
                     (append ahk-keyword-list
                             ahk-directive-list
                             ahk-internal-variable-list
                             ahk-completion-list))))
+  (if (looking-at "\\w+")
+      (goto-char (match-end 0)))
+  
   (let ((end (point)))
     (if (and (or (save-excursion (re-search-backward "\\<\\w+"))
                  (looking-at "\\<\\w+"))
@@ -272,10 +277,14 @@ Key bindings:
                       (completing-read "Complete command: "
                                        (mapcar (lambda (c) (list c))
                                                completions)
-                                       nil t prefix)))
-            (delete-region start end)
-            (if (listp completions) (setq completions (car completions)))
-            (insert completions))))))
+                                       nil t prefix))))
+          (if (stringp completions)
+              ;; this is a trick to upcase "If" and other prefixes
+              (setq completions (try-completion completions ahk-completion-list)))
+
+          (delete-region start end)
+          (if (listp completions) (setq completions (car completions)))
+          (insert completions)))))
 
 (defun ahk-indent-line-and-complete ()
   "Combines indetion and completion."
@@ -295,7 +304,14 @@ Key bindings:
   (self-insert-command arg)
   (ahk-indent-line)
   (newline)
-  (ahk-indent-line))
+  (ahk-indent-line)
+  (when (equal (event-to-character last-input-event) ?{)
+    (newline)
+    (ahk-indent-line)
+    (insert ?})
+    (ahk-indent-line)
+    (forward-line -1)
+    (ahk-indent-line)))
 
 (defun ahk-electric-return ()
   "Insert newline and indent."
