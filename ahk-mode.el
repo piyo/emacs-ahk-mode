@@ -1,4 +1,4 @@
-;;; ahk-mode.el --- major mode for editing AutoHotKey scripts for XEmacs
+;;; ahk-mode.el --- major mode for editing AutoHotKey scripts for X/GNU Emacs
 
 ;; Copyright (C) 2005 Robert Widhopf-Fenk
 
@@ -26,7 +26,7 @@
 ;; http://www.autohotkey.com/ is a cool tool to make daily life
 ;; with Windows easier or even fun!
 ;;
-;; This is a XEmacs mode for editing AutoHotKey scripts.
+;; This is a X/GNU Emacs mode for editing AutoHotKey scripts.
 ;;
 ;; Place this file somewhere in your load-path, byte-compile it and add the
 ;; following line to your ~/.xemacs/init.el:
