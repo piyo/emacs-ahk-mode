@@ -31,25 +31,27 @@
 ;; following line to your ~/.xemacs/init.el resp. ~/.emacs:
 ;;   (require 'ahk-mode)
 ;; 
-;; The first ahk-mode.el is started it will ask you for the path to the Syntax
-;; directory which you will find in the subdirectory of your AHK installation.
+;; The first time ahk-mode.el is started it will ask you for the path to the
+;; Syntax directory which you will find in the subdirectory of your AHK
+;; installation.
+;;
 ;; For example if you installed AHK at C:\Programms\AutoHotKey it will be
 ;; C:/Programms/AutoHotKey/Extras/Editors/Syntax !
-;; 
+;;
 ;; When opening a script file you will get:
 ;; - syntax highlighting
-;; - completion of commands and variables (bound to tab)
-;; - command help on completion
-;; - indention (bound to tab)
-;; - electric braces (typing { will also insert } and place point in between)
+;; - indention, completion and command help (bound to "TAB")
+;; - insertion of command templates (bound to "C-c C-i") 
+;; - electric braces (typing "{" will also insert "}" and place point in
+;;   between) 
 ;;
 ;; Please send bug-reports or feature suggestions to hackATrobfDOTde.
 
 ;;; Bugs:
 ;;
 ;; - completions is not context aware
-;; - there is no way to lookup the web docs
-;; - multi-line comments are not handled on the fly 
+;; - there should be a way to lookup the web docs from within Emacs 
+;; - multi-line comments are not fontified on the fly 
 
 ;;; History:
 ;;
@@ -57,6 +59,7 @@
 ;; If you wonder what arch is, take a look at http://wiki.gnuarch.org/ !
 
 (eval-when-compile
+  (require 'font-lock)
   (require 'cl))
 
 ;;; Code:
@@ -94,19 +97,17 @@
     (modify-syntax-entry ??  "w" table)
     (modify-syntax-entry ?[  "w" table)
     (modify-syntax-entry ?]  "w" table)
-    (cond
-     ;; XEmacs
-     ((memq '8-bit c-emacs-features)
-      (modify-syntax-entry ?*  ". 23"   table))
-     ;; Emacs
-     ((memq '1-bit c-emacs-features)
-      (modify-syntax-entry ?*  ". 23"   table))
-     ;; incompatible
-     (t (error "ahk-mode is incompatible with this version of Emacs")))
-
-    (modify-syntax-entry ?\n "> b"  table)
+    ;; some additional characters used in paths and switches  
+    (modify-syntax-entry ?\\  "w" table)
+    (modify-syntax-entry ?/  "w" table)
+    (modify-syntax-entry ?-  "w" table)
+    (modify-syntax-entry ?:  "w" table)
+    (modify-syntax-entry ?.  "w" table)
+    ;; for multiline comments (taken from cc-mode)
+    (modify-syntax-entry ?*  ". 23"   table)
     ;; Give CR the same syntax as newline, for selective-display
-    (modify-syntax-entry ?\^m "> b" table)
+;    (modify-syntax-entry ?\^m "> b" table)
+;    (modify-syntax-entry ?\n "> b"  table)
     table)
   "Syntax table used in `ahk-mode' buffers.")
 
@@ -118,10 +119,11 @@
 (defvar ahk-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map "\C-c\C-c" 'comment-region)
-    (define-key map [tab] 'ahk-indent-line-and-complete)
+    (define-key map "\C-c\C-i" 'ahk-insert-command-template)
+    (define-key map "\t" 'ahk-indent-line-and-complete)
     (define-key map "{" 'ahk-electric-brace)
     (define-key map "}" 'ahk-electric-brace)
-    (define-key map [return] 'ahk-electric-return)
+    (define-key map "\r" 'ahk-electric-return)
     map)
   "Keymap used in `ahk-mode' buffers.")
 
@@ -178,7 +180,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Commands-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\([^;][^\t\r\n, ]+\\)\\([^\r\n]*\\)"))
+      (if (not (looking-at "\\([^;\r\n][^\t\r\n, ]+\\)\\([^\r\n]*\\)"))
           nil;; (error "Unknown file syntax")
         (setq ahk-Commands-list (cons (list
                                        (match-string 1)
@@ -193,7 +195,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Keys-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\([^;][^\t\r\n ]+\\)"))
+      (if (not (looking-at "\\([^;\r\n][^\t\r\n ]+\\)"))
           nil;; (error "Unknown file syntax of Keys.txt")
         (setq ahk-Keys-list (cons (match-string 1) ahk-Keys-list)))
       (forward-line 1))
@@ -205,7 +207,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Keywords-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\([^;][^\t\r\n ]+\\)"))
+      (if (not (looking-at "\\([^;\r\n][^\t\r\n ]+\\)"))
           nil;; (error "Unknown file syntax of Keywords.txt")
         (setq ahk-Keywords-list (cons (match-string 1) ahk-Keywords-list)))
       (forward-line 1))
@@ -216,7 +218,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Variables-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\([^;][^\t\r\n]+\\)"))
+      (if (not (looking-at "\\([^;\r\n][^\t\r\n]+\\)"))
           nil;; (error "Unknown file syntax of Variables.txt")
         (setq ahk-Variables-list (cons (match-string 1) ahk-Variables-list)))
       (forward-line 1))
@@ -247,10 +249,11 @@ This directory must be specified in the variable `ahk-syntax-directory'."
                     (mapconcat 'regexp-quote ahk-Variables-list "\\|")
                     "\\)\\b")
             'font-lock-variable-name-face)
-           (cons
-            (concat "\\b\\("
+           (list
+            (concat "\\(^[ \t]*\\|::[ \t]*\\)\\("
                     (mapconcat 'regexp-quote (mapcar 'car ahk-Commands-list) "\\|")
-                    "\\)\\b")
+                    "\\)")
+            2
             'font-lock-function-name-face)
            (cons
             (concat "\\b\\("
@@ -318,7 +321,7 @@ Key bindings:
     ;; check for special tokens
     (save-excursion
       (beginning-of-line)
-      (if (looking-at "^\\([ \t]+\\)\\}")
+      (if (looking-at "^\\([ \t]*\\)\\}")
           (setq indent (- indent ahk-indetion))
         (if (or (looking-at "^[ \t]*[^,: \t\n]*:")
                 (and (looking-at "^\\([ \t]*\\)\\(Return\\|Exit\\)")
@@ -426,6 +429,30 @@ Key bindings:
   (ahk-indent-line)
   (newline)
   (ahk-indent-line))
+
+(defun ahk-insert-command-template ()
+  "Insert a command template."
+  (interactive)
+  (let ((completions (mapcar (lambda (c) (list (mapconcat 'identity c "")))
+                             ahk-Commands-list))
+        (completion-ignore-case t)
+        (start (point))
+        end 
+        command)
+    (setq command (completing-read "AHK command template: " completions))
+    (insert command)
+    (ahk-indent-line)
+    (setq end (point-marker))
+    (goto-char start)
+    (while (re-search-forward "[`][nt]" end t)
+      (if (string= (match-string 0) "`n")
+	  (replace-match "\n")
+	(replace-match "")))
+    (ahk-indent-region start end)
+    (goto-char (1+ start))
+    ;; jump to first parameter 
+    (re-search-forward "\\<" end nil)
+    (set-marker end nil)))
 
 (provide 'ahk-mode)
 
