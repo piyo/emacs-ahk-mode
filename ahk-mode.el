@@ -164,7 +164,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Commands-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\(#?[A-Za-z]+\\)\\([^]*\\)?"))
+      (if (not (looking-at "\\(#?[A-Za-z]+\\)\\([^\r]*\\)\r?"))
           nil;; (error "Unknown file syntax")
         (setq ahk-Commands-list (cons (list
                                        (match-string 1)
@@ -179,7 +179,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Keys-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\([^;][^\n ]+\\)?"))
+      (if (not (looking-at "\\([^;][^\r\n ]+\\)\r?"))
           nil;; (error "Unknown file syntax of Keys.txt")
         (setq ahk-Keys-list (cons (match-string 1) ahk-Keys-list)))
       (forward-line 1))
@@ -191,7 +191,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Keywords-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\([^;][^\n ]+\\)?"))
+      (if (not (looking-at "\\([^;][^\r\n ]+\\)\r?"))
           nil;; (error "Unknown file syntax of Keywords.txt")
         (setq ahk-Keywords-list (cons (match-string 1) ahk-Keywords-list)))
       (forward-line 1))
@@ -202,7 +202,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (setq ahk-Variables-list nil)
     (goto-char 0)
     (while (not (eobp))
-      (if (not (looking-at "\\([^;][^\n ]+\\)?"))
+      (if (not (looking-at "\\([^;][^\r\n ]+\\)\r?"))
           nil;; (error "Unknown file syntax of Variables.txt")
         (setq ahk-Variables-list (cons (match-string 1) ahk-Variables-list)))
       (forward-line 1))
