@@ -1,17 +1,23 @@
-;;; ahk-mode.el --- AutoHotKey code editing commands for XEmacs
+;;; ahk-mode.el --- major mode for editing AutoHotKey scripts for XEmacs
 
-;; Copyright (C) Robert Widhopf-Fenk
+;; Copyright (C) 2005 Robert Widhopf-Fenk
 
-;; Author: Robert Widhopf-Fenk
-;; Homepage: http://www.robf.de/Hacking/elisp
+;; Author:   Robert Widhopf-Fenk
 ;; Keywords: AutoHotKey
+;; X-URL:    http://www.robf.de/Hacking/elisp
 ;; arch-tag: 1ae180cb-002e-4656-bd9e-a209acd4a3d4
 ;; Version:  $Id$
 
-;; This mode is free software; you can redistribute it and/or modify
+;; This code is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
 
 ;;; Commentary:
 ;;
@@ -34,6 +40,7 @@
 ;; Please send bug-reports or feature suggestions to hackATrobfDOTde.
 
 ;;; History:
+;;
 ;; is stored in my arch repository ... 
 
 (eval-when-compile
