@@ -49,12 +49,22 @@
 
 ;;; Code:
 (defgroup ahk-mode nil
-  "An mode for AutoHotKey"
+  "A mode for AutoHotKey"
   :group 'languages)
 
 (defcustom ahk-mode-hook nil
-  "*Hook run by `ahk-mode'."
+  "Hook run by `ahk-mode'."
   :type 'hook
+  :group 'ahk-mode)
+
+(defcustom ahk-indetion 2
+  "The indetion level."
+  :type 'integer
+  :group 'ahk-mode)
+
+(defcustom ahk-syntax-directory nil
+  "The indetion level."
+  :type 'directory 
   :group 'ahk-mode)
 
 ;;;###autoload
@@ -89,93 +99,119 @@
     map)
   "Keymap used in `ahk-mode' buffers.")
 
-(defvar ahk-keyword-list
-  '("AutoTrim" "BlockInput" "Break" "ClipWait" "Continue" "Control"
-    "ControlClick" "ControlFocus" "ControlGet" "ControlGetFocus"
-    "ControlGetPos" "ControlGetText" "ControlMove" "ControlSend"
-    "ControlSendRaw" "ControlSetText" "CoordMode" "DetectHiddenText"
-    "DetectHiddenWindows" "Drive" "DriveGet" "DriveSpaceFree" "Edit" "Else"
-    "EnvAdd" "EnvDiv" "EnvMult" "EnvSet" "EnvSub" "EnvUpdate" "Exit" "ExitApp"
-    "FileAppend" "FileCopy" "FileCopyDir" "FileCreateDir" "FileCreateShortcut"
-    "FileDelete" "FileInstall" "FileGetAttrib" "FileGetShortcut" "FileGetSize"
-    "FileGetTime" "FileGetVersion" "FileMove" "FileMoveDir" "FileRead"
-    "FileReadLine" "FileRecycle" "FileRecycleEmpty" "FileRemoveDir"
-    "FileSelectFile" "FileSelectFolder" "FileSetAttrib" "FileSetTime"
-    "FormatTime" "GetKeyState" "Gosub" "Goto" "GroupActivate" "GroupAdd"
-    "GroupClose" "GroupDeactivate" "GUI" "GuiControl" "GuiControlGet"
-    "HideAutoItWin" "Hotkey" "If" "IfEqual" "IfNotEqual" "IfExist"
-    "IfNotExist" "IfGreater" "IfGreaterOrEqual" "IfInString" "IfNotInString"
-    "IfLess" "IfLessOrEqual" "IfMsgBox" "IfWinActive" "IfWinNotActive"
-    "IfWinExist" "IfWinNotExist" "ImageSearch" "IniDelete" "IniRead"
-    "IniWrite" "Input" "InputBox" "KeyHistory" "KeyWait" "LeftClick"
-    "LeftClickDrag" "ListHotkeys" "ListLines" "ListVars" "Loop" "Menu"
-    "MouseClick" "MouseClickDrag" "MouseGetPos" "MouseMove" "MsgBox" "OnExit"
-    "OutputDebug" "Pause" "PixelGetColor" "PixelSearch" "PostMessage"
-    "Process" "Progress" "Random" "RegDelete" "RegRead" "RegWrite" "Reload"
-    "Repeat" "EndRepeat" "Return" "RightClick" "RightClickDrag" "Run" "RunAs"
-    "RunWait" "Send" "SendRaw" "SendMessage" "SetBatchLines"
-    "SetCapslockState" "SetControlDelay" "SetDefaultMouseSpeed" "SetFormat"
-    "SetKeyDelay" "SetMouseDelay" "SetNumlockState" "SetScrollLockState"
-    "SetStoreCapslockMode" "SetTimer" "SetTitleMatchMode" "SetWinDelay"
-    "SetWorkingDir" "Shutdown" "Sleep" "Sort" "SoundBeep" "SoundGet"
-    "SoundGetWaveVolume" "SoundPlay" "SoundSet" "SoundSetWaveVolume"
-    "SplashImage" "SplashTextOn" "SplashTextOff" "SplitPath"
-    "StatusBarGetText" "StatusBarWait" "StringCaseSense" "StringGetPos"
-    "StringLeft" "StringLen" "StringLower" "StringMid" "StringReplace"
-    "StringRight" "StringSplit" "StringTrimLeft" "StringTrimRight"
-    "StringUpper" "Suspend" "SysGet" "Thread" "ToolTip" "Transform" "TrayTip"
-    "URLDownloadToFile" "WinActivate" "WinActivateBottom" "WinClose"
-    "WinGetActiveStats" "WinGetActiveTitle" "WinGetClass" "WinGet" "WinGetPos"
-    "WinGetText" "WinGetTitle" "WinHide" "WinKill" "WinMaximize"
-    "WinMenuSelectItem" "WinMinimize" "WinMinimizeAll" "WinMinimizeAllUndo"
-    "WinMove" "WinRestore" "WinSet" "WinSetTitle" "WinShow" "WinWait"
-    "WinWaitActive" "WinWaitClose" "WinWaitNotActive")
-  "A list of ahk commands used for syntax highlighting and completion.")
+(defvar ahk-Commands-list nil
+  "A list of ahk commands and parameters.
+Will be initialized by `ahk-init'")
 
-(defvar ahk-directive-list
-  '("#AllowSameLineComments" "#CommentFlag" "#ErrorStdOut" "#EscapeChar"
-    "#HotkeyInterval" "#HotkeyModifierTimeout" "#Hotstring" "#Include"
-    "#InstallKeybdHook" "#InstallMouseHook" "#KeyHistory"
-    "#MaxHotkeysPerInterval" "#MaxMem" "#MaxThreads" "#MaxThreadsBuffer"
-    "#MaxThreadsPerHotkey" "#NoTrayIcon" "#Persistent" "#SingleInstance"
-    "#UseHook" "#WinActivateForce" )
-  "A list of ahk directives.")
+(defvar ahk-Keys-list nil
+  "A list of ahk key names.
+Will be initialized by `ahk-init'")
 
-(defvar ahk-internal-variable-list
-  '("A_ScriptFullPath" "A_AhkVersion" "A_IsCompiled" "A_ExitReason" "A_YYYY"
-    "A_MM" "A_DD" "A_MMMM" "A_MMM" "A_DDDD" "A_DDD" "A_WDay" "A_YDay"
-    "A_YWeek" "A_Hour" "A_Min" "A_Sec" "A_Now" "A_NowUTC" "A_TickCount"
-    "A_IsSuspended" "A_BatchLines" "A_TitleMatchMode" "A_TitleMatchModeSpeed"
-    "A_DetectHiddenWindows" "A_DetectHiddenText" "A_AutoTrim"
-    "A_StringCaseSense" "A_FormatInteger" "A_FormatFloat" "A_KeyDelay"
-    "A_WinDelay" "A_ControlDelay" "A_MouseDelay" "A_DefaultMouseSpeed"
-    "A_IconHidden" "A_IconTip" "A_IconFile" "A_IconNumber" "A_TimeIdle"
-    "A_TimeIdlePhysical" "A_Gui" "A_GuiControl" "A_GuiWidth" "A_GuiHeight"
-    "A_GuiControlEvent" "A_ThisMenuItem" "A_ThisMenu" "A_ThisMenuItemPos"
-    "A_ThisHotkey" "A_PriorHotkey" "A_TimeSinceThisHotkey"
-    "A_TimeSincePriorHotkey" "A_EndChar" "A_OSType" "A_OSVersion" "A_Language"
-    "A_ComputerName" "A_UserName" "A_WinDir" "A_ProgramFiles" "A_Desktop"
-    "A_DesktopCommon" "A_StartMenu" "A_StartMenuCommon" "A_Programs"
-    "A_ProgramsCommon" "A_Startup" "A_StartupCommon" "A_MyDocuments"
-    "A_IsAdmin" "A_ScreenWidth" "A_ScreenHeight" "A_IPAddress1" "A_Cursor"
-    "A_CaretX" "A_CaretY" "A_Index" "A_LoopFileName" "A_LoopRegName"
-    "A_LoopReadLine" "A_LoopField"
+(defvar ahk-Keywords-list nil
+  "A list of ahks keywords.
+Will be initialized by `ahk-init'")
 
-    "ErrorLevel" "Clipboard")
-  "A list of ahks internal variables.")
+(defvar ahk-Variables-list nil
+  "A list of ahks variables.
+Will be initialized by `ahk-init'")
 
-(defvar ahk-mode-font-lock-keywords
-  (list
-   '("\\s-*;.*$" .  font-lock-comment-face)
-   '("^\\([^ \t\n:]+\\):" . (1 font-lock-builtin-face))
-   '("[^, %\"]*%[^% ]+%" . font-lock-variable-name-face)
-   (cons (concat "^" (regexp-opt ahk-directive-list)) 'font-lock-preprocessor-face)
-   (cons (regexp-opt ahk-keyword-list) 'font-lock-function-name-face)
-   )
-  "Syntax highlighting for `ahk-mode'.")
+(defvar ahk-mode-font-lock-keywords nil
+  "Syntax highlighting for `ahk-mode'.
+Will be initialized by `ahk-init'")
 
 ;(easy-menu-define ahk-menu ahk-mode-map "AHK Mode Commands"
 ;		  (cons "AHK" ("0.1" ahk-mode-menu ahk)))
+
+(defun ahk-init ()
+  "Initializes ahk-mode variables.
+An AHK installation provides a subdirectory \"Extras/Editors/Syntax\"
+containing a list of keywords, variables, commands and keys.
+
+This directory must be specified in the variable `ahk-syntax-directory'."
+  (interactive)
+
+  (message "Initializing ahk-mode variables ...")
+  (when (null ahk-syntax-directory)
+    (customize-save-variable
+     'ahk-syntax-directory
+     (read-directory-name "Please give the AHK-Syntax directory: "))
+    (custom-save-all))
+
+  (save-excursion
+    (set-buffer (get-buffer-create " *ahk-mode-temp*"))
+  
+    ;; read commands 
+    (erase-buffer)
+    (insert-file-contents (expand-file-name "Commands.txt"
+                                            ahk-syntax-directory))
+    (setq ahk-Commands-list nil)
+    (goto-char 0)
+    (while (not (eobp))
+      (if (not (looking-at "\\(#?[A-Za-z]+\\)\\([^]*\\)?"))
+          nil                           ; (error "Unknown file syntax.")
+        (setq ahk-Commands-list (cons (list
+                                       (match-string 1)
+                                       (match-string 2))
+                                      ahk-Commands-list)))
+      (forward-line 1))
+    
+    ;; read keys
+    (erase-buffer)
+    (insert-file-contents (expand-file-name "Keys.txt"
+                                            ahk-syntax-directory))
+    (setq ahk-Keys-list nil)
+    (goto-char 0)
+    (while (not (eobp))
+      (if (not (looking-at "\\([^;][^\n ]+\\)?"))
+          nil;; (error "Unknown file syntax of Keys.txt.")
+        (setq ahk-Keys-list (cons (match-string 1) ahk-Keys-list)))
+      (forward-line 1))
+    
+    ;; read keywords  
+    (erase-buffer)
+    (insert-file-contents (expand-file-name "Keywords.txt"
+                                            ahk-syntax-directory))
+    (setq ahk-Keywords-list nil)
+    (goto-char 0)
+    (while (not (eobp))
+      (if (not (looking-at "\\([^;][^\n ]+\\)?"))
+          nil;; (error "Unknown file syntax of Keywords.txt.")
+        (setq ahk-Keywords-list (cons (match-string 1) ahk-Keywords-list)))
+      (forward-line 1))
+    ;; read variables
+    (erase-buffer)
+    (insert-file-contents (expand-file-name "Variables.txt"
+                                            ahk-syntax-directory))
+    (setq ahk-Variables-list nil)
+    (goto-char 0)
+    (while (not (eobp))
+      (if (not (looking-at "\\([^;][^\n ]+\\)?"))
+          nil;; (error "Unknown file syntax of Variables.txt.")
+        (setq ahk-Variables-list (cons (match-string 1) ahk-Variables-list)))
+      (forward-line 1))
+  
+    (setq ahk-mode-font-lock-keywords 
+          (list
+           '("\\s-*;.*$" .
+             font-lock-comment-face)
+           '("^\\([^ \t\n:]+\\):" .
+             (1 font-lock-builtin-face))
+           '("[^, %\"]*%[^% ]+%" .
+             font-lock-variable-name-face)
+           ;; I get an error when using regexp-opt instead of simply
+           ;; concatenating the keywords and I do not understand why ;-(
+           ;; (warning/warning) Error caught in `font-lock-pre-idle-hook': (invalid-regexp Invalid preceding regular expression)
+           (cons (mapconcat 'identity (mapcar 'car ahk-Commands-list) "\\|")
+                 'font-lock-function-name-face)
+           (cons (mapconcat 'identity ahk-Keywords-list "\\|")
+                 'font-lock-keyword-face)
+           (cons (mapconcat 'identity ahk-Keys-list "\\|")
+                 'font-lock-constant-face)
+           (cons (mapconcat 'identity ahk-Variables-list "\\|")
+                 'font-lock-variable-name-face)
+           )))
+  
+  (message "Initializing ahk-mode variables done."))
 
 ;;;###autoload
 (defun ahk-mode ()
@@ -186,6 +222,8 @@ The hook `ahk-mode-hook' is run at mode initialization.
 Key bindings:
 \\{ahk-mode-map}"
   (interactive)
+  (if (null ahk-Commands-list)
+      (ahk-init))
   (kill-all-local-variables)
   (set-syntax-table ahk-mode-syntax-table)
   (setq major-mode 'ahk-mode
@@ -267,10 +305,10 @@ Key bindings:
       ;; built completion list
       (setq ahk-completion-list
             (mapcar (lambda (c) (list c))
-                    (append ahk-keyword-list
-                            ahk-directive-list
-                            ahk-internal-variable-list
-                            ahk-completion-list))))
+                    (append (mapcar 'car ahk-Commands-list)
+                            ahk-Keywords-list
+                            ahk-Variables-list
+                            ahk-Keys-list))))
   (if (looking-at "\\w+")
       (goto-char (match-end 0)))
   
