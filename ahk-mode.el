@@ -313,7 +313,9 @@ Key bindings:
       (skip-chars-backward " \t\n")
       (beginning-of-line)
       (if (looking-at "^[^: ]+:")
-          (setq indent ahk-indetion)
+          (if (looking-at "^[^: ]+:\\([^:]*:\\)?[ \t]*$")
+              (setq indent ahk-indetion)
+            (setq indent 0))
         (if (looking-at "^\\([ \t]*\\){")
             (setq indent (+ (length (match-string 1)) ahk-indetion))
           (if (looking-at "^\\([ \t]*\\)")
@@ -328,7 +330,7 @@ Key bindings:
                      (or (<= (length (match-string 1)) ahk-indetion)
                          (= indent ahk-indetion)))
                 (looking-at "^;;;"))
-        (setq indent 0))))
+            (setq indent 0))))
     (let ((p (point-marker)))
       (beginning-of-line)
       (if (looking-at "^[ \t]+")
@@ -412,7 +414,7 @@ Key bindings:
 
   (let ((event  last-input-event))
     (setq event (if (featurep 'xemacs)
-		    (event-to-character (aref event 0))
+		    (event-to-character event)
 		  (setq event (if (stringp event) (aref event 0) event))))
 
     (when (equal event ?{)
