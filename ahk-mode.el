@@ -281,7 +281,9 @@ Key bindings:
                                        nil t prefix))))
           (if (stringp completions)
               ;; this is a trick to upcase "If" and other prefixes
-              (setq completions (try-completion completions ahk-completion-list)))
+              (let ((c (try-completion completions ahk-completion-list)))
+                (if (stringp c)
+                    (setq completions c))))
 
           (delete-region start end)
           (if (listp completions) (setq completions (car completions)))
