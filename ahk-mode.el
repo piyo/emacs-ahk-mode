@@ -84,16 +84,29 @@
              '("\\.ahk$"  . ahk-mode))
 
 (defvar ahk-mode-syntax-table
-  (let ((syntax-table (make-syntax-table)))
+  (let ((table (make-syntax-table)))
     ;; these are also allowed in variable names
-    (modify-syntax-entry ?#  "w" syntax-table)
-    (modify-syntax-entry ?_  "w" syntax-table)
-    (modify-syntax-entry ?@  "w" syntax-table)
-    (modify-syntax-entry ?$  "w" syntax-table)
-    (modify-syntax-entry ??  "w" syntax-table)
-    (modify-syntax-entry ?[  "w" syntax-table)
-    (modify-syntax-entry ?]  "w" syntax-table)
-    syntax-table)
+    (modify-syntax-entry ?#  "w" table)
+    (modify-syntax-entry ?_  "w" table)
+    (modify-syntax-entry ?@  "w" table)
+    (modify-syntax-entry ?$  "w" table)
+    (modify-syntax-entry ??  "w" table)
+    (modify-syntax-entry ?[  "w" table)
+    (modify-syntax-entry ?]  "w" table)
+    (cond
+     ;; XEmacs
+     ((memq '8-bit c-emacs-features)
+      (modify-syntax-entry ?*  ". 23"   table))
+     ;; Emacs
+     ((memq '1-bit c-emacs-features)
+      (modify-syntax-entry ?*  ". 23"   table))
+     ;; incompatible
+     (t (error "ahk-mode is incompatible with this version of Emacs")))
+
+    (modify-syntax-entry ?\n "> b"  table)
+    ;; Give CR the same syntax as newline, for selective-display
+    (modify-syntax-entry ?\^m "> b" table)
+    table)
   "Syntax table used in `ahk-mode' buffers.")
 
 (defvar ahk-mode-abbrev-table
