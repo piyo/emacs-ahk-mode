@@ -3,11 +3,10 @@
 ;; Copyright (C) 2005 Robert Widhopf-Fenk
 
 ;; Author:   Robert Widhopf-Fenk
-;; Keywords: AutoHotKey
+;; Keywords: AutoHotKey, major mode
 ;; X-URL:    http://www.robf.de/Hacking/elisp
 ;; arch-tag: 1ae180cb-002e-4656-bd9e-a209acd4a3d4
 ;; Version:  $Id$
-
 
 ;; This code is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -29,20 +28,32 @@
 ;; This is a X/GNU Emacs mode for editing AutoHotKey scripts.
 ;;
 ;; Place this file somewhere in your load-path, byte-compile it and add the
-;; following line to your ~/.xemacs/init.el:
+;; following line to your ~/.xemacs/init.el resp. ~/.emacs:
 ;;   (require 'ahk-mode)
+;; 
+;; The first ahk-mode.el is started it will ask you for the path to the Syntax
+;; directory which you will find in the subdirectory of your AHK installation.
+;; For example if you installed AHK at C:\Programms\AutoHotKey it will be
+;; C:/Programms/AutoHotKey/Extras/Editors/Syntax !
 ;; 
 ;; When opening a script file you will get:
 ;; - syntax highlighting
 ;; - completion of commands and variables (bound to tab)
+;; - command help on completion
 ;; - indention (bound to tab)
-;; - electric braces (typing { will also insert })
+;; - electric braces (typing { will also insert } and place point in between)
 ;;
 ;; Please send bug-reports or feature suggestions to hackATrobfDOTde.
 
+;;; Bugs:
+;;
+;; - completions is not context aware
+;; - there is no way to lookup the web docs 
+
 ;;; History:
 ;;
-;; is stored in my arch repository ... 
+;; The CHANGELOG is stored in my arch repository.
+;; If you wonder what arch is, take a look at http://wiki.gnuarch.org/ !
 
 (eval-when-compile
   (require 'cl))
@@ -50,7 +61,8 @@
 ;;; Code:
 (defgroup ahk-mode nil
   "A mode for AutoHotKey"
-  :group 'languages)
+  :group 'languages
+  :prefix "ahk-")
 
 (defcustom ahk-mode-hook nil
   "Hook run by `ahk-mode'."
@@ -64,7 +76,7 @@
 
 (defcustom ahk-syntax-directory nil
   "The indetion level."
-  :type 'directory 
+  :type 'directory
   :group 'ahk-mode)
 
 ;;;###autoload
@@ -119,11 +131,16 @@ Will be initialized by `ahk-init'")
   "Syntax highlighting for `ahk-mode'.
 Will be initialized by `ahk-init'")
 
+(defvar ahk-completion-list nil
+  "A list of all symbols available for completion
+Will be initialized by `ahk-init'")
+
+
 ;(easy-menu-define ahk-menu ahk-mode-map "AHK Mode Commands"
 ;		  (cons "AHK" ("0.1" ahk-mode-menu ahk)))
 
 (defun ahk-init ()
-  "Initializes ahk-mode variables.
+  "Initialize ahk-mode variables.
 An AHK installation provides a subdirectory \"Extras/Editors/Syntax\"
 containing a list of keywords, variables, commands and keys.
 
@@ -140,7 +157,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
   (save-excursion
     (set-buffer (get-buffer-create " *ahk-mode-temp*"))
   
-    ;; read commands 
+    ;; read commands
     (erase-buffer)
     (insert-file-contents (expand-file-name "Commands.txt"
                                             ahk-syntax-directory))
@@ -148,7 +165,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (goto-char 0)
     (while (not (eobp))
       (if (not (looking-at "\\(#?[A-Za-z]+\\)\\([^]*\\)?"))
-          nil                           ; (error "Unknown file syntax.")
+          nil;; (error "Unknown file syntax")
         (setq ahk-Commands-list (cons (list
                                        (match-string 1)
                                        (match-string 2))
@@ -163,11 +180,11 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (goto-char 0)
     (while (not (eobp))
       (if (not (looking-at "\\([^;][^\n ]+\\)?"))
-          nil;; (error "Unknown file syntax of Keys.txt.")
+          nil;; (error "Unknown file syntax of Keys.txt")
         (setq ahk-Keys-list (cons (match-string 1) ahk-Keys-list)))
       (forward-line 1))
     
-    ;; read keywords  
+    ;; read keywords
     (erase-buffer)
     (insert-file-contents (expand-file-name "Keywords.txt"
                                             ahk-syntax-directory))
@@ -175,7 +192,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (goto-char 0)
     (while (not (eobp))
       (if (not (looking-at "\\([^;][^\n ]+\\)?"))
-          nil;; (error "Unknown file syntax of Keywords.txt.")
+          nil;; (error "Unknown file syntax of Keywords.txt")
         (setq ahk-Keywords-list (cons (match-string 1) ahk-Keywords-list)))
       (forward-line 1))
     ;; read variables
@@ -186,11 +203,19 @@ This directory must be specified in the variable `ahk-syntax-directory'."
     (goto-char 0)
     (while (not (eobp))
       (if (not (looking-at "\\([^;][^\n ]+\\)?"))
-          nil;; (error "Unknown file syntax of Variables.txt.")
+          nil;; (error "Unknown file syntax of Variables.txt")
         (setq ahk-Variables-list (cons (match-string 1) ahk-Variables-list)))
       (forward-line 1))
   
-    (setq ahk-mode-font-lock-keywords 
+    ;; built completion list
+    (setq ahk-completion-list
+          (mapcar (lambda (c) (list c))
+                  (append (mapcar 'car ahk-Commands-list)
+                          ahk-Keywords-list
+                          ahk-Variables-list
+                          ahk-Keys-list)))
+
+    (setq ahk-mode-font-lock-keywords
           (list
            '("\\s-*;.*$" .
              font-lock-comment-face)
@@ -257,20 +282,20 @@ Key bindings:
       (skip-chars-backward " \t\n")
       (beginning-of-line)
       (if (looking-at "^[^: ]+:")
-          (setq indent 2)
+          (setq indent ahk-indetion)
         (if (looking-at "^\\([ \t]*\\){")
-            (setq indent (+ (length (match-string 1)) 2))
+            (setq indent (+ (length (match-string 1)) ahk-indetion))
           (if (looking-at "^\\([ \t]*\\)")
               (setq indent (+ (length (match-string 1))))))))
     ;; check for special tokens
     (save-excursion
       (beginning-of-line)
       (if (looking-at "^\\([ \t]+\\)\\}")
-          (setq indent (- indent 2))
+          (setq indent (- indent ahk-indetion))
         (if (or (looking-at "^[ \t]*[^: \t\n]*::")
                 (and (looking-at "^\\([ \t]*\\)\\(Return\\|Exit\\)")
-                     (or (<= (length (match-string 1)) 2)
-                         (= indent 2)))
+                     (or (<= (length (match-string 1)) ahk-indetion)
+                         (= indent ahk-indetion)))
                 (looking-at "^;;;"))
         (setq indent 0))))
     (let ((p (point-marker)))
@@ -295,20 +320,10 @@ Key bindings:
     (forward-line 1))
   (set-marker end nil))
 
-(defvar ahk-completion-list nil)
-
 (defun ahk-complete ()
   "Indent current line when at the beginning or complete current command."
   (interactive)
 
-  (if (null ahk-completion-list)
-      ;; built completion list
-      (setq ahk-completion-list
-            (mapcar (lambda (c) (list c))
-                    (append (mapcar 'car ahk-Commands-list)
-                            ahk-Keywords-list
-                            ahk-Variables-list
-                            ahk-Keys-list))))
   (if (looking-at "\\w+")
       (goto-char (match-end 0)))
   
