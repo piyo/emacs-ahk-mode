@@ -6,6 +6,7 @@
 ;; Homepage: http://www.robf.de/Hacking/elisp
 ;; Keywords: AutoHotKey
 ;; arch-tag: 1ae180cb-002e-4656-bd9e-a209acd4a3d4
+;; Version:  $Id$
 
 ;; This mode is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -33,7 +34,7 @@
 ;; Please send bug-reports or feature suggestions to hackATrobfDOTde.
 
 ;;; History:
-;; 0.1: first public release
+;; 0.1.2: first public release
 
 (eval-when-compile
   (require 'cl))
