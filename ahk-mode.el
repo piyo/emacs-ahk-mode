@@ -8,6 +8,7 @@
 ;; arch-tag: 1ae180cb-002e-4656-bd9e-a209acd4a3d4
 ;; Version:  $Id$
 
+
 ;; This code is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
@@ -80,10 +81,10 @@
 
 (defvar ahk-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map [(control c) (control c)] 'comment-region)
+    (define-key map "\C-c\C-c" 'comment-region)
     (define-key map [tab] 'ahk-indent-line-and-complete)
-    (define-key map [{] 'ahk-electric-brace)
-    (define-key map [}] 'ahk-electric-brace)
+    (define-key map "{" 'ahk-electric-brace)
+    (define-key map "}" 'ahk-electric-brace)
     (define-key map [return] 'ahk-electric-return)
     map)
   "Keymap used in `ahk-mode' buffers.")
@@ -195,6 +196,10 @@ Key bindings:
   (put 'ahk-mode 'font-lock-defaults '(ahk-mode-font-lock-keywords t))
   (put 'ahk-mode 'font-lock-keywords-case-fold-search t)
 
+  (when (not (featurep 'xemacs))
+    (setq font-lock-defaults '(ahk-mode-font-lock-keywords))
+    (setq font-lock-keywords-case-fold-search t))
+  
   (use-local-map ahk-mode-map)
 ;  (easy-menu-add ahk-menu)
   (setq comment-start ";")
@@ -315,13 +320,19 @@ Key bindings:
   (ahk-indent-line)
   (newline)
   (ahk-indent-line)
-  (when (equal (event-to-character last-input-event) ?{)
-    (newline)
-    (ahk-indent-line)
-    (insert ?})
-    (ahk-indent-line)
-    (forward-line -1)
-    (ahk-indent-line)))
+
+  (let ((event  last-input-event))
+    (setq event (if (featurep 'xemacs)
+		    (event-to-character (aref event 0))
+		  (setq event (if (stringp event) (aref event 0) event))))
+
+    (when (equal event ?{)
+      (newline)
+      (ahk-indent-line)
+      (insert ?})
+      (ahk-indent-line)
+      (forward-line -1)
+      (ahk-indent-line))))
 
 (defun ahk-electric-return ()
   "Insert newline and indent."
