@@ -48,7 +48,8 @@
 ;;; Bugs:
 ;;
 ;; - completions is not context aware
-;; - there is no way to lookup the web docs 
+;; - there is no way to lookup the web docs
+;; - multi-line comments are not handled on the fly 
 
 ;;; History:
 ;;
@@ -164,7 +165,7 @@ This directory must be specified in the variable `ahk-syntax-directory'."
   (when (null ahk-syntax-directory)
     (customize-save-variable
      'ahk-syntax-directory
-     (read-directory-name "Please give the AHK-Syntax directory: "))
+     (read-file-name "Please give the AHK-Syntax directory: "))
     (custom-save-all))
 
   (save-excursion
