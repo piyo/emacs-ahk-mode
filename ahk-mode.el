@@ -29,14 +29,18 @@
 ;;
 ;; Place this file somewhere in your load-path, byte-compile it and add the
 ;; following line to your ~/.xemacs/init.el resp. ~/.emacs:
-;;   (require 'ahk-mode)
+;;
+;; (setq ahk-syntax-directory "PATHTO/AutoHotkey/Extras/Editors/Syntax/")
+;; (add-to-list 'auto-mode-alist '("\\.ahk$" . ahk-mode))
+;; (autoload 'ahk-mode "ahk-mode")
 ;; 
 ;; The first time ahk-mode.el is started it will ask you for the path to the
-;; Syntax directory which you will find in the subdirectory of your AHK
-;; installation.
+;; Syntax directory if not set already.  You will find it as a subdirectory
+;; of your AHK installation.
 ;;
 ;; For example if you installed AHK at C:\Programms\AutoHotKey it will be
-;; C:/Programms/AutoHotKey/Extras/Editors/Syntax !
+;; C:/Programms/AutoHotKey/Extras/Editors/Syntax or a corresponding cygwin
+;; path!
 ;;
 ;; When opening a script file you will get:
 ;; - syntax highlighting
@@ -56,6 +60,7 @@
 ;;; History:
 ;;
 ;; The CHANGELOG is stored in my arch repository.
+;;
 ;; If you wonder what arch is, take a look at http://wiki.gnuarch.org/ !
 
 (eval-when-compile
