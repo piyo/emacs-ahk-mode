@@ -68,7 +68,7 @@
 
 (eval-when-compile
   (require 'font-lock)
-  (require 'w3)
+  (if (locate-library "w3") (require 'w3))
   (require 'cl))
 
 ;;; Code:
@@ -551,6 +551,7 @@ If no region is active use the current line."
   (interactive (list
                 (completing-read "AHK command: "
                                  ahk-completion-list nil t)))
+  (require 'w3)
   (w3-fetch "http://www.autohotkey.com/docs/commands.htm")
   (goto-char (point-min))
   (when (re-search-forward (concat "^|" (regexp-quote command)))
