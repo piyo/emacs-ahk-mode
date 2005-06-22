@@ -354,6 +354,14 @@ Key bindings:
   (force-mode-line-update)
   (run-hooks 'ahk-mode-hook))
 
+(defun ahk-calc-indention (str &optional offset)
+  (let ((i (* (or offset 0) ahk-indetion)))
+    (while (string-match "\t" str)
+      (setq i (+ i tab-width)
+            str (replace-match "" nil t str)))
+    (setq i (+ i (length str)))
+    i))
+
 (defun ahk-indent-line ()
   "Indent the current line."
   (interactive)
@@ -374,19 +382,20 @@ Key bindings:
                 (setq indent ahk-indetion)
               (setq indent 0))
           (if (looking-at "^\\([ \t]*\\)[{(]")
-              (setq indent (+ (length (match-string 1)) ahk-indetion))
+              (setq indent (ahk-calc-indention (match-string 1) 1))
             (if (and
                  (save-excursion
                    (forward-line 1)
+                   (beginning-of-line)
                    (not (looking-at "^\\([ \t]*\\)[{(]")))
                  (looking-at "^\\([ \t]*\\)\\(If\\|Else\\)"))
-                (setq indent (+ (length (match-string 1)) ahk-indetion))
+                (setq indent (ahk-calc-indention (match-string 1) 1))
               (if (save-excursion
                     (forward-line -1)
                     (looking-at "^\\([ \t]*\\)\\(If\\|Else\\)"))
-                  (setq indent (+ (length (match-string 1))))
+                  (setq indent (ahk-calc-indention (match-string 1)))
                 (if (looking-at "^\\([ \t]*\\)")
-                    (setq indent (+ (length (match-string 1)))))))))))
+                    (setq indent (ahk-calc-indention (match-string 1))))))))))
     ;; check for special tokens
     (save-excursion
       (beginning-of-line)
