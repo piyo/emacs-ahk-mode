@@ -367,7 +367,14 @@ Key bindings:
 ; ELSE body is on its own line ...
 (defvar ahk-if-regexp
   (concat "^[ \t]*\\("
-          "If[^,\n]*,[^,\n]*,[^,\n]*,"
+          "If\\(Not\\)?"
+            (regexp-opt '("InString" "InStr"
+                          "Less" "Greater" "Equal"
+                          "LessOrEqual" "GreaterOrEqual"
+                          ))
+            "[^,\n]*,[^,\n]*,[^,\n]*,"
+          "\\|"
+          "IfNotExist[^,\n]*,[^,\n]*,"
           "\\|"
           "Else[ \t]+[^ \t\r\n]+"
           "\\)"))
@@ -415,15 +422,14 @@ Key bindings:
         (if (or (looking-at "^[ \t]*[^,: \t\n]*:")
                 (looking-at "^;;;"))
             (setq indent 0))))
-    (let ((p (point-marker)))
-      (beginning-of-line)
-      (if (looking-at "^[ \t]+")
+    (beginning-of-line)
+    (if (looking-at "^[ \t]+")
           (replace-match ""))
-      (indent-to indent)
-      (goto-char p)
-      (set-marker p nil)
-      (if (bolp)
-          (goto-char (+ (point) indent))))))
+    (indent-to indent)
+    (if (re-search-forward "[^ \t]" (point-max) t)
+        (goto-char (1- (point))))
+    (if (bolp)
+        (goto-char (+ (point) indent)))))
 
 (defun ahk-indent-region (start end)
   "Indent lines in region START to END."
