@@ -362,6 +362,16 @@ Key bindings:
     (setq i (+ i (length str)))
     i))
 
+; the follwing regexp is used to detect if a condition is a one line statement or not,
+; i.e. it matches one line statements but should not match those where the THEN resp.
+; ELSE body is on its own line ...
+(defvar ahk-if-regexp
+  (concat "^[ \t]*\\("
+          "If[^,\n]*,[^,\n]*,[^,\n]*,"
+          "\\|"
+          "Else[ \t]+[^ \t\r\n]+"
+          "\\)"))
+
 (defun ahk-indent-line ()
   "Indent the current line."
   (interactive)
@@ -388,6 +398,7 @@ Key bindings:
                    (forward-line 1)
                    (beginning-of-line)
                    (not (looking-at "^\\([ \t]*\\)[{(]")))
+                 (not (looking-at ahk-if-regexp))
                  (looking-at "^\\([ \t]*\\)\\(If\\|Else\\)"))
                 (setq indent (ahk-calc-indention (match-string 1) 1))
               (if (save-excursion
