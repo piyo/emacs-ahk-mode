@@ -414,14 +414,18 @@ Key bindings:
                   (setq indent (ahk-calc-indention (match-string 1)))
                 (if (looking-at "^\\([ \t]*\\)")
                     (setq indent (ahk-calc-indention (match-string 1))))))))))
+    
     ;; check for special tokens
     (save-excursion
       (beginning-of-line)
       (if (looking-at "^\\([ \t]*\\)[})]")
           (setq indent (- indent ahk-indetion))
         (if (or (looking-at "^[ \t]*[^,: \t\n]*:")
-                (looking-at "^;;;"))
+                (looking-at "^;;;")
+                (and (looking-at "^\\([ \t]*\\)Return")
+                     (<= (ahk-calc-indention (match-string 1)) ahk-indetion)))
             (setq indent 0))))
+    
     (beginning-of-line)
     (if (looking-at "^[ \t]+")
           (replace-match ""))
