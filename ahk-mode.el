@@ -365,7 +365,7 @@ Key bindings:
 ; the follwing regexp is used to detect if a condition is a one line statement or not,
 ; i.e. it matches one line statements but should not match those where the THEN resp.
 ; ELSE body is on its own line ...
-(defvar ahk-if-regexp
+(defvar ahk-one-line-if-regexp
   (concat "^[ \t]*\\("
           "If\\(Not\\)?"
             (regexp-opt '("InString" "InStr"
@@ -405,7 +405,7 @@ Key bindings:
                    (forward-line 1)
                    (beginning-of-line)
                    (not (looking-at "^\\([ \t]*\\)[{(]")))
-                 (not (looking-at ahk-if-regexp))
+                 (not (looking-at ahk-one-line-if-regexp))
                  (looking-at "^\\([ \t]*\\)\\(If\\|Else\\)"))
                 (setq indent (ahk-calc-indention (match-string 1) 1))
               (if (save-excursion
@@ -414,18 +414,14 @@ Key bindings:
                   (setq indent (ahk-calc-indention (match-string 1)))
                 (if (looking-at "^\\([ \t]*\\)")
                     (setq indent (ahk-calc-indention (match-string 1))))))))))
-    
     ;; check for special tokens
     (save-excursion
       (beginning-of-line)
       (if (looking-at "^\\([ \t]*\\)[})]")
           (setq indent (- indent ahk-indetion))
         (if (or (looking-at "^[ \t]*[^,: \t\n]*:")
-                (looking-at "^;;;")
-                (and (looking-at "^\\([ \t]*\\)Return")
-                     (<= (ahk-calc-indention (match-string 1)) ahk-indetion)))
+                (looking-at "^;;;"))
             (setq indent 0))))
-    
     (beginning-of-line)
     (if (looking-at "^[ \t]+")
           (replace-match ""))
