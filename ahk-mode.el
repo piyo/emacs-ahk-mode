@@ -366,17 +366,18 @@ Key bindings:
 ; i.e. it matches one line statements but should not match those where the THEN resp.
 ; ELSE body is on its own line ...
 (defvar ahk-one-line-if-regexp
-  (concat "^[ \t]*\\("
-          "If\\(Not\\)?"
+  (concat "^\\([ \t]*\\)" ;; this is used for indention
+          "\\("
+          "If\\(Not\\)?\\("
             (regexp-opt '("InString" "InStr"
                           "Less" "Greater" "Equal"
                           "LessOrEqual" "GreaterOrEqual"
                           ))
-            "[^,\n]*,[^,\n]*,[^,\n]*,"
+            "\\)[^,\n]*,[^,\n]*,[^,\n]*,"
           "\\|"
-          "IfNotExist[^,\n]*,[^,\n]*,"
+          "If\\(Not\\)?Exist[^,\n]*,[^,\n]*,"
           "\\|"
-          "Else[ \t]+[^ \t\r\n]+"
+          "Else[ \t]+[^ \t\n]+"
           "\\)"))
 
 (defun ahk-indent-line ()
@@ -384,36 +385,56 @@ Key bindings:
   (interactive)
 
   (let ((indent 0)
+        (opening-brace nil)
         (case-fold-search t))
     ;; do a backward search to determin the indention level
     (save-excursion
       (beginning-of-line)
       (if (looking-at "^;")
           (setq indent 0)
-        (skip-chars-backward " \t\n")
+        ;; save type of current line 
+        (setq opening-brace (looking-at "^\\([ \t]*\\)[{(]"))
+        ;; check previous non-empty line 
+        (skip-chars-backward " \r\t\n")
         (beginning-of-line)
+        ;; skip commented lines backward 
         (while (and (looking-at "^;") (not (bobp)))
           (forward-line -1))
+        ;; is it a label 
         (if (looking-at "^[^: \n]+:")
             (if (looking-at "^[^: ]+:\\([^:\n]*:\\)?[ \t]*$")
                 (setq indent ahk-indetion)
               (setq indent 0))
+          ;; is it an opening { or (
           (if (looking-at "^\\([ \t]*\\)[{(]")
               (setq indent (ahk-calc-indention (match-string 1) 1))
-            (if (looking-at "^\\([ \t]*\\)Return")
+            ;; is it a Return at the first level?
+            (if (and (looking-at "^\\([ \t]*\\)Return")
+                     (= (ahk-calc-indention (match-string 1)) ahk-indetion))
                 (setq indent (ahk-calc-indention (match-string 1) -1))
+              ;; If/Else with body on next line, but not opening { or ( 
               (if (and
-                   (save-excursion
-                     (forward-line 1)
-                     (beginning-of-line)
-                     (not (looking-at "^\\([ \t]*\\)[{(]")))
-                   (not (looking-at ahk-one-line-if-regexp))
-                   (looking-at "^\\([ \t]*\\)\\(If\\|Else\\)"))
+                     (not opening-brace)
+                     (looking-at "^\\([ \t]*\\)\\(If\\|Else\\)")
+                     (not (looking-at ahk-one-line-if-regexp)))
                   (setq indent (ahk-calc-indention (match-string 1) 1))
-                (if (save-excursion
-                      (forward-line -1)
-                      (looking-at "^\\([ \t]*\\)\\(If\\|Else\\)"))
-                    (setq indent (ahk-calc-indention (match-string 1)))
+                ;; two lines back was a If/Else thus indent like it
+                (if (and (not opening-brace)
+                         (save-excursion
+                           (beginning-of-line)
+                           (skip-chars-backward " \r\t\n")
+                           (beginning-of-line)
+                           (setq indent nil)
+                           ;; backtrace nested Ifs 
+                           (while (and (looking-at "^\\([ \t]*\\)\\(If\\|Else\\)")
+                                       (not (looking-at ahk-one-line-if-regexp)))
+                             (setq indent (ahk-calc-indention (match-string 1)))
+                             (beginning-of-line)
+                             (skip-chars-backward " \r\t\n")
+                             (beginning-of-line))
+                           indent))
+                    (setq indent indent)
+                  ;; the last resort, indent as the last line
                   (if (looking-at "^\\([ \t]*\\)")
                       (setq indent (ahk-calc-indention (match-string 1)))))))))))
     ;; check for special tokens
