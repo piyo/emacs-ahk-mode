@@ -380,12 +380,13 @@ Key bindings:
           "Else[ \t]+[^ \t\n]+"
           "\\)"))
 
+;; TODO write a unit test for indetion 
 (defun ahk-indent-line ()
   "Indent the current line."
   (interactive)
 
   (let ((indent 0)
-        (opening-brace nil)
+        (opening-brace nil) (else nil) (closing-brace) (block-skip nil)
         (case-fold-search t))
     ;; do a backward search to determin the indention level
     (save-excursion
@@ -394,9 +395,17 @@ Key bindings:
           (setq indent 0)
         ;; save type of current line 
         (setq opening-brace (looking-at "^\\([ \t]*\\)[{(]"))
+        (setq else          (looking-at "^\\([ \t]*\\)Else[ \r\n]"))
+        (setq closing-brace (looking-at "^\\([ \t]*\\)[)}]"))
         ;; check previous non-empty line 
         (skip-chars-backward " \r\t\n")
         (beginning-of-line)
+        (when (looking-at "^\\([ \t]*\\)[)}]")
+          (goto-char (match-end 0))
+          (backward-list)
+          (skip-chars-backward " \r\t\n")
+          (beginning-of-line)
+          (setq block-skip t))
         ;; skip commented lines backward 
         (while (and (looking-at "^;") (not (bobp)))
           (forward-line -1))
@@ -413,13 +422,14 @@ Key bindings:
                      (= (ahk-calc-indention (match-string 1)) ahk-indetion))
                 (setq indent (ahk-calc-indention (match-string 1) -1))
               ;; If/Else with body on next line, but not opening { or ( 
-              (if (and
-                     (not opening-brace)
-                     (looking-at "^\\([ \t]*\\)\\(If\\|Else\\)")
-                     (not (looking-at ahk-one-line-if-regexp)))
+              (if (and (not opening-brace)
+                       (not block-skip)
+                       (looking-at "^\\([ \t]*\\)\\(If\\|Else\\)")
+                       (not (looking-at ahk-one-line-if-regexp)))
                   (setq indent (ahk-calc-indention (match-string 1) 1))
                 ;; two lines back was a If/Else thus indent like it
                 (if (and (not opening-brace)
+                         (not else)
                          (save-excursion
                            (beginning-of-line)
                            (skip-chars-backward " \r\t\n")
