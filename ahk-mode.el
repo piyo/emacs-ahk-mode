@@ -265,6 +265,9 @@ This directory must be specified in the variable `ahk-syntax-directory'."
             'font-lock-variable-name-face)
            (list
             (concat "\\(^[ \t]*\\|::[ \t]*\\)\\("
+                    ;; special tokens must come first
+                    "Else[ \t]+If[A-Za-z]*"
+                    "\\|"
                     (mapconcat 'regexp-quote (mapcar 'car ahk-Commands-list) "\\|")
                     "\\)")
             2
@@ -377,7 +380,7 @@ Key bindings:
           "\\|"
           "If\\(Not\\)?Exist[^,\n]*,[^,\n]*,"
           "\\|"
-          "Else[ \t]+[^ \t\n]+"
+          "Else[ \t]+\\([^I\n][^f\n][^ \n]\\)"
           "\\)"))
 
 ;; TODO write a unit test for indetion 
@@ -411,7 +414,9 @@ Key bindings:
           (forward-line -1))
         ;; is it a label 
         (if (looking-at "^[^: \n]+:")
-            (if (looking-at "^[^: ]+:\\([^:\n]*:\\)?[ \t]*$")
+            (if (and (not opening-brace)
+                     (not block-skip)
+                     (looking-at "^[^: ]+:\\([^:\n]*:\\)?[ \t]*$"))
                 (setq indent ahk-indetion)
               (setq indent 0))
           ;; is it an opening { or (
@@ -429,7 +434,7 @@ Key bindings:
                   (setq indent (ahk-calc-indention (match-string 1) 1))
                 ;; two lines back was a If/Else thus indent like it
                 (if (and (not opening-brace)
-                         (not else)
+;                         (not else)
                          (save-excursion
                            (beginning-of-line)
                            (skip-chars-backward " \r\t\n")
